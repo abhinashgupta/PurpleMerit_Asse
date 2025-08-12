@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../services/api";
-import EditModal from "../components/EditModal"; 
+import EditModal from "../components/EditModal";
+import CreateModal from "../components/CreateModal"; // Import the CreateModal
 
 const ManagementPage = () => {
   const { entity } = useParams();
@@ -10,7 +11,9 @@ const ManagementPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // State for both modals
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
 
   const fetchData = useCallback(async () => {
@@ -33,7 +36,38 @@ const ManagementPage = () => {
   }, [fetchData]);
 
   const defineColumns = (entity, fetchedData) => {
-    if (fetchedData.length === 0) return;
+    // This function remains the same
+    if (fetchedData.length === 0) {
+      // If there's no data, define columns based on entity type for the Create modal
+      switch (entity) {
+        case "drivers":
+          setColumns([
+            { header: "Name", accessor: "name" },
+            { header: "Shift Hours", accessor: "shift_hours" },
+            { header: "Past Week Hours", accessor: "past_week_hours" },
+          ]);
+          break;
+        case "routes":
+          setColumns([
+            { header: "Route ID", accessor: "route_id" },
+            { header: "Distance (km)", accessor: "distance_km" },
+            { header: "Traffic Level", accessor: "traffic_level" },
+            { header: "Base Time (min)", accessor: "base_time_min" },
+          ]);
+          break;
+        case "orders":
+          setColumns([
+            { header: "Order ID", accessor: "order_id" },
+            { header: "Value (₹)", accessor: "value_rs" },
+            { header: "Route ID", accessor: "route_id" },
+            { header: "Delivery Duration", accessor: "delivery_time" },
+          ]);
+          break;
+        default:
+          setColumns([]);
+      }
+      return;
+    }
     switch (entity) {
       case "drivers":
         setColumns([
@@ -64,6 +98,7 @@ const ManagementPage = () => {
   };
 
   const handleDelete = async (id) => {
+    // This function remains the same
     if (window.confirm("Are you sure you want to delete this item?")) {
       try {
         await api.delete(`/${entity}/${id}`);
@@ -77,17 +112,19 @@ const ManagementPage = () => {
 
   const handleEdit = (item) => {
     setEditingItem(item);
-    setIsModalOpen(true);
+    setIsEditModalOpen(true);
   };
 
   const handleSave = () => {
-    setIsModalOpen(false);
-    fetchData(); 
+    // This now closes both modals and refetches data
+    setIsEditModalOpen(false);
+    setIsCreateModalOpen(false);
+    fetchData();
   };
 
   const renderCell = (item, column) => {
+    // This function remains the same
     const value = item[column.accessor];
-
     if (
       entity === "orders" &&
       column.accessor === "route_id" &&
@@ -96,15 +133,12 @@ const ManagementPage = () => {
     ) {
       return value.route_id;
     }
-
     if (Array.isArray(value)) {
       return value.join(", ");
     }
-
     if (typeof value === "object" && value !== null) {
       return JSON.stringify(value);
     }
-
     return value;
   };
 
@@ -113,7 +147,16 @@ const ManagementPage = () => {
 
   return (
     <div>
-      <h1>Manage {entity.charAt(0).toUpperCase() + entity.slice(1)}</h1>
+      <div style={styles.header}>
+        <h1>Manage {entity.charAt(0).toUpperCase() + entity.slice(1)}</h1>
+        <button
+          onClick={() => setIsCreateModalOpen(true)}
+          style={styles.createButton}
+        >
+          + Create New
+        </button>
+      </div>
+
       <table style={styles.table}>
         <thead>
           <tr>
@@ -149,12 +192,21 @@ const ManagementPage = () => {
         </tbody>
       </table>
 
-      {isModalOpen && (
+      {isEditModalOpen && (
         <EditModal
           item={editingItem}
           entity={entity}
           columns={columns}
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => setIsEditModalOpen(false)}
+          onSave={handleSave}
+        />
+      )}
+
+      {isCreateModalOpen && (
+        <CreateModal
+          entity={entity}
+          columns={columns}
+          onClose={() => setIsCreateModalOpen(false)}
           onSave={handleSave}
         />
       )}
@@ -162,8 +214,21 @@ const ManagementPage = () => {
   );
 };
 
-
 const styles = {
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  createButton: {
+    padding: "10px 15px",
+    fontSize: "1em",
+    backgroundColor: "#28a745",
+    color: "white",
+    border: "none",
+    borderRadius: "5px",
+    cursor: "pointer",
+  },
   table: { width: "100%", borderCollapse: "collapse", marginTop: "20px" },
   th: {
     border: "1px solid #ddd",
