@@ -23,6 +23,10 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/simulation", simulationRoutes);
 
+app.get("/", (req, res) => {
+    res.send("API IS RUNNING");
+})
+
 app.listen(PORT, (err) => {
   if (err) {
     console.log("Error connecting to server ", err);
