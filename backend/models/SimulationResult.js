@@ -25,6 +25,10 @@ const SimulationResultSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  fuel_cost_breakdown: {
+    base: { type: Number },
+    surcharge: { type: Number },
+  },
 });
 
 module.exports = mongoose.model("SimulationResult", SimulationResultSchema);
