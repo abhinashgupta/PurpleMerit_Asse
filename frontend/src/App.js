@@ -9,7 +9,7 @@ import { AuthProvider } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage"; 
 import SimulationPage from "./pages/SimulationPage"; 
-import ManagementPage from "./pages/ManagementPage"; 
+// import ManagementPage from "./pages/ManagementPage"; 
 import PrivateRoute from "./components/PrivateRoute";
 import Navbar from "./components/Navbar"; 
 
@@ -26,7 +26,7 @@ function App() {
             <Route element={<PrivateRoute />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/simulation" element={<SimulationPage />} />
-              <Route path="/manage/:entity" element={<ManagementPage />} />
+              {/* <Route path="/manage/:entity" element={<ManagementPage />} /> */}
               <Route path="/" element={<Navigate to="/dashboard" />} />
             </Route>
 
