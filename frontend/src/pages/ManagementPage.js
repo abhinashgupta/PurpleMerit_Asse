@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../services/api";
+import EditModal from "../components/EditModal"; 
 
 const ManagementPage = () => {
   const { entity } = useParams();
@@ -9,28 +10,30 @@ const ManagementPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const response = await api.get(`/${entity}`);
-        setData(response.data);
-        defineColumns(entity, response.data);
-      } catch (err) {
-        setError(`Failed to fetch ${entity}.`);
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
 
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await api.get(`/${entity}`);
+      setData(response.data);
+      defineColumns(entity, response.data);
+    } catch (err) {
+      setError(`Failed to fetch ${entity}.`);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [entity]);
+
+  useEffect(() => {
     fetchData();
-  }, [entity]); 
+  }, [fetchData]);
 
   const defineColumns = (entity, fetchedData) => {
     if (fetchedData.length === 0) return;
-
     switch (entity) {
       case "drivers":
         setColumns([
@@ -60,14 +63,48 @@ const ManagementPage = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this item?")) {
+      try {
+        await api.delete(`/${entity}/${id}`);
+        setData(data.filter((item) => item._id !== id));
+      } catch (err) {
+        setError(`Failed to delete item. Please try again.`);
+        console.error(err);
+      }
+    }
+  };
+
+  const handleEdit = (item) => {
+    setEditingItem(item);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = () => {
+    setIsModalOpen(false);
+    fetchData(); 
+  };
+
   const renderCell = (item, column) => {
     const value = item[column.accessor];
+
+    if (
+      entity === "orders" &&
+      column.accessor === "route_id" &&
+      typeof value === "object" &&
+      value !== null
+    ) {
+      return value.route_id;
+    }
+
     if (Array.isArray(value)) {
       return value.join(", ");
     }
+
     if (typeof value === "object" && value !== null) {
-      return value.route_id || JSON.stringify(value);
+      return JSON.stringify(value);
     }
+
     return value;
   };
 
@@ -76,7 +113,6 @@ const ManagementPage = () => {
 
   return (
     <div>
-      {/* Capitalize first letter for a nice title */}
       <h1>Manage {entity.charAt(0).toUpperCase() + entity.slice(1)}</h1>
       <table style={styles.table}>
         <thead>
@@ -91,16 +127,20 @@ const ManagementPage = () => {
         </thead>
         <tbody>
           {data.map((item) => (
-            <tr key={item._id || item.order_id}>
+            <tr key={item._id}>
               {columns.map((col) => (
                 <td key={col.accessor} style={styles.td}>
                   {renderCell(item, col)}
                 </td>
               ))}
               <td style={styles.td}>
-                {/* Placeholder buttons for CRUD actions */}
-                <button style={styles.button}>Edit</button>
-                <button style={{ ...styles.button, ...styles.deleteButton }}>
+                <button onClick={() => handleEdit(item)} style={styles.button}>
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(item._id)}
+                  style={{ ...styles.button, ...styles.deleteButton }}
+                >
                   Delete
                 </button>
               </td>
@@ -108,26 +148,30 @@ const ManagementPage = () => {
           ))}
         </tbody>
       </table>
+
+      {isModalOpen && (
+        <EditModal
+          item={editingItem}
+          entity={entity}
+          columns={columns}
+          onClose={() => setIsModalOpen(false)}
+          onSave={handleSave}
+        />
+      )}
     </div>
   );
 };
 
+
 const styles = {
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-    marginTop: "20px",
-  },
+  table: { width: "100%", borderCollapse: "collapse", marginTop: "20px" },
   th: {
     border: "1px solid #ddd",
     padding: "12px",
     textAlign: "left",
     backgroundColor: "#f2f2f2",
   },
-  td: {
-    border: "1px solid #ddd",
-    padding: "12px",
-  },
+  td: { border: "1px solid #ddd", padding: "12px" },
   button: {
     marginRight: "5px",
     padding: "5px 10px",

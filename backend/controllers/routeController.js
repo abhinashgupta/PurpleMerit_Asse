@@ -16,11 +16,39 @@ exports.createRoute = async (req, res) => {
     traffic_level: req.body.traffic_level,
     base_time_min: req.body.base_time_min,
   });
-
   try {
     const newRoute = await route.save();
     res.status(201).json(newRoute);
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+};
+
+exports.updateRoute = async (req, res) => {
+  try {
+    const updatedRoute = await Route.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    if (!updatedRoute) {
+      return res.status(404).json({ message: "Route not found" });
+    }
+    res.json(updatedRoute);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+
+exports.deleteRoute = async (req, res) => {
+  try {
+    const route = await Route.findByIdAndDelete(req.params.id);
+    if (!route) {
+      return res.status(404).json({ message: "Route not found" });
+    }
+    res.json({ message: "Deleted Route" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
